@@ -21,5 +21,9 @@ The limit, in tokens, that a Level sets on what the player types. Only the playe
 _Avoid_: Token budget, energy, charge
 
 **Attempt**:
-One try at a Level: the player submits a Prompt and the Companion acts it out until the Level is cleared or the try fails.
+One try at a Level: the player submits a Prompt and the Companion acts it out. An Attempt ends cleared, failed or voided.
 _Avoid_: Run, turn, try
+
+**Voided Attempt**:
+An Attempt ended by a model error or a reply the game can't read, rather than by the Companion's play. Its tokens are refunded and it doesn't count.
+_Avoid_: Glitch, error Attempt

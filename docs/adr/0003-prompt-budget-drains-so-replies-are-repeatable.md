@@ -1,0 +1,3 @@
+# The Prompt Budget drains across Attempts, so Companion replies are repeatable
+
+Every Prompt sent at a Level comes out of the same Prompt Budget, and the Level is lost when a failed Attempt leaves no tokens, so the budget is a real limit rather than a cap on Prompt length. That is only fair if a failure is the Prompt's fault, so the Companion's replies are repeatable (temperature 0 and a fixed seed): the same Prompt always plays out the same way, and re-sending a weak Prompt until the model gets lucky can't work. Varied replies would make the Companion feel livelier, but don't bring them back without revisiting the drain. The full rule set is in [Prompt Budget state machine](https://github.com/NikosZisisPD/collaboard/issues/5).
