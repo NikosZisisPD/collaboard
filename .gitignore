@@ -1,0 +1,20 @@
+# dependencies
+node_modules/
+
+# environment
+.env
+.env.*
+!.env.example
+
+# build
+dist/
+build/
+out/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# editors
+.idea/
+*.swp
