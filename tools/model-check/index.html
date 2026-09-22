@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Say Less · local model check</title>
+<style>
+  body { margin: 40px auto; max-width: 780px; padding: 0 24px; font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #1f2330; }
+  h1 { font-size: 22px; margin-bottom: 4px; }
+  .muted { color: #667085; }
+  ul { list-style: none; padding: 0; }
+  li { margin: 6px 0; }
+  .ok { color: #067647; }
+  .bad { color: #b42318; }
+  pre { background: #f2f4f7; padding: 14px 16px; border-radius: 8px; overflow: auto; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<h1>Local model check</h1>
+<p class="muted">Sends a test Prompt from this localhost page to Ollama twice, with the Companion's settings, then checks that the reply has the action format and that both replies match. The Level and the action format are placeholders; the real ones are decided in “How the Companion turns a Prompt into actions”.</p>
+<ul id="checks"><li class="muted">Running…</li></ul>
+<pre id="summary"></pre>
+
+<script>
+const OLLAMA = 'http://127.0.0.1:11434';
+const params = new URLSearchParams(location.search);
+const model = params.get('model') || 'qwen3.5:4b';
+const prompt = params.get('prompt') || 'Walk right and jump the gap';
+
+const VERBS = ['walk', 'jump', 'push', 'wait'];
+const ACTION_FORMAT = {
+  type: 'object',
+  properties: {
+    actions: {
+      type: 'array',
+      maxItems: 12,
+      items: {
+        type: 'object',
+        properties: {
+          verb: { type: 'string', enum: VERBS },
+          steps: { type: 'integer', minimum: 1, maximum: 10 },
+        },
+        required: ['verb'],
+      },
+    },
+  },
+  required: ['actions'],
+};
+
+// The model can't see the format, so the hidden instructions describe it too.
+const HIDDEN_INSTRUCTIONS = [
+  'You are the Companion in a 2D puzzle platformer. The player writes a Prompt, and you turn it into actions.',
+  'Reply only with JSON: {"actions": [{"verb": "walk" | "jump" | "push" | "wait", "steps": 1-10}]}.',
+  'walk moves one tile right per step, jump leaps two tiles right, push shoves a box one tile right, wait passes one step.',
+  'The Level: you stand at the left edge. The ground ends 3 tiles to your right, then there is a 2-tile gap, then ground again with the flag 2 tiles further on.',
+].join('\n');
+
+const companionRequest = () => ({
+  model,
+  messages: [
+    { role: 'system', content: HIDDEN_INSTRUCTIONS },
+    { role: 'user', content: prompt },
+  ],
+  think: false,
+  format: ACTION_FORMAT,
+  stream: false,
+  keep_alive: -1,
+  options: { temperature: 0, seed: 1 },
+});
+
+async function post(path, body) {
+  const started = performance.now();
+  const res = await fetch(OLLAMA + path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const json = await res.json();
+  if (!res.ok || json.error) throw new Error(json.error || `HTTP ${res.status}`);
+  return { json, ms: Math.round(performance.now() - started) };
+}
+
+function shapeProblem(text) {
+  let data;
+  try { data = JSON.parse(text); } catch { return 'the reply is not JSON'; }
+  if (!data || !Array.isArray(data.actions)) return 'the reply has no "actions" list';
+  if (data.actions.length > 12) return 'the reply has more than 12 actions';
+  for (const a of data.actions) {
+    if (!VERBS.includes(a.verb)) return `unknown verb ${JSON.stringify(a.verb)}`;
+    if (a.steps !== undefined && !(Number.isInteger(a.steps) && a.steps >= 1 && a.steps <= 10)) return `bad steps ${JSON.stringify(a.steps)}`;
+  }
+  return null;
+}
+
+const perSecond = (count, ns) => (count && ns ? Math.round(count / (ns / 1e9)) : null);
+const stats = j => ({
+  reply: j.message?.content ?? '',
+  promptTokens: j.prompt_eval_count ?? 0,
+  replyTokens: j.eval_count ?? 0,
+  readingPerSecond: perSecond(j.prompt_eval_count, j.prompt_eval_duration),
+  writingPerSecond: perSecond(j.eval_count, j.eval_duration),
+  cachedTokens: j.prompt_eval_cached_count ?? null,
+});
+
+async function run() {
+  const report = { model, prompt, origin: location.origin, checks: {} };
+  try {
+    report.ollamaVersion = (await (await fetch(`${OLLAMA}/api/version`)).json()).version;
+    const preload = await post('/api/chat', { model, messages: [], keep_alive: -1 });
+    report.checks.cors = { ok: true, detail: `called Ollama from ${location.origin} with no CORS setup` };
+    report.loadMs = preload.ms;
+    const first = await post('/api/chat', companionRequest());
+    const second = await post('/api/chat', companionRequest());
+    report.replyMs = [first.ms, second.ms];
+    report.first = stats(first.json);
+    report.second = stats(second.json);
+    const problem = shapeProblem(report.first.reply) || shapeProblem(report.second.reply);
+    report.checks.format = { ok: !problem, detail: problem || 'the reply matches the action format' };
+    const same = report.first.reply === report.second.reply;
+    report.checks.repeatable = { ok: same, detail: same ? 'same Prompt, same reply' : 'the two replies differ' };
+  } catch (e) {
+    report.error = String(e.message || e);
+    if (!report.checks.cors) report.checks.cors = { ok: false, detail: `calling Ollama from ${location.origin} failed` };
+  }
+  report.passed = !report.error && Object.values(report.checks).every(c => c.ok);
+  show(report);
+  fetch('/report', { method: 'POST', body: JSON.stringify(report) }).catch(() => {});
+}
+
+function show(r) {
+  const secs = ms => `${(ms / 1000).toFixed(1)} s`;
+  document.getElementById('checks').innerHTML = Object.values(r.checks)
+    .map(c => `<li class="${c.ok ? 'ok' : 'bad'}">${c.ok ? '✓' : '✗'} ${c.detail}</li>`).join('')
+    + (r.error ? `<li class="bad">Error: ${r.error}</li>` : '');
+  document.getElementById('summary').textContent = [
+    `Ollama ${r.ollamaVersion ?? '?'} · ${r.model}`,
+    `Prompt: “${r.prompt}”`,
+    r.loadMs != null ? `Load: ${secs(r.loadMs)}` : '',
+    r.replyMs ? `Replies: ${secs(r.replyMs[0])} and ${secs(r.replyMs[1])}` : '',
+    r.first ? `Reply: ${r.first.reply}` : '',
+  ].filter(Boolean).join('\n');
+}
+
+run();
+</script>
+</body>
+</html>

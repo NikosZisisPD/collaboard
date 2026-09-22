@@ -2,6 +2,9 @@
   "name": "collaboard",
   "version": "0.1.0",
   "private": true,
+  "scripts": {
+    "check:model": "node tools/model-check/serve.mjs"
+  },
   "engines": {
     "node": ">=24"
   }
