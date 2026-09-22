@@ -1,0 +1,542 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PROTOTYPE · Say Less · Prompt Budget state machine</title>
+<style>
+  :root {
+    --accent: #4f46e5;
+    --accent-soft: #eef2ff;
+    --ink: #1f2330;
+    --muted: #667085;
+    --line: #e4e7ec;
+    --bg: #f8f9fb;
+    --refused: #b42318;
+    --refused-soft: #fef3f2;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: var(--ink); background: var(--bg); }
+  header, main { max-width: 1280px; margin: 0 auto; padding-left: 32px; padding-right: 32px; }
+  header { padding-top: 28px; padding-bottom: 4px; }
+  .badge { display: inline-block; font-size: 12px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--accent); background: var(--accent-soft); padding: 2px 10px; border-radius: 999px; }
+  h1 { font-size: 24px; margin: 10px 0 8px; }
+  .lede { max-width: 980px; margin: 0 0 8px; }
+  .lede.muted { color: var(--muted); }
+  main { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 24px; padding-top: 16px; padding-bottom: 48px; }
+  @media (max-width: 1000px) { main { grid-template-columns: 1fr; } }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 20px 22px; margin-bottom: 24px; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 14px; }
+  .muted { color: var(--muted); font-weight: 400; }
+  .phases { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 18px; font-size: 13px; }
+  .phase { padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+  .phase.on { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  .sep { color: var(--muted); }
+  dl.fields { display: grid; grid-template-columns: max-content 1fr; gap: 6px 18px; margin: 0; }
+  dt { color: var(--muted); }
+  dd { margin: 0; font-weight: 500; }
+  .changes { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; min-height: 26px; }
+  .chip { background: var(--accent-soft); color: var(--accent); border-radius: 6px; padding: 2px 8px; font-size: 13px; }
+  .message { margin: 12px 0 0; padding: 10px 12px; border-radius: 8px; background: #f2f4f7; }
+  .message.refused { background: var(--refused-soft); color: var(--refused); }
+  label.field { display: block; font-weight: 600; margin-bottom: 6px; }
+  textarea { width: 100%; font: inherit; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; resize: vertical; }
+  textarea:disabled { background: #f2f4f7; }
+  .counter { font-size: 13px; color: var(--muted); margin: 6px 0 14px; }
+  .counter.over { color: var(--refused); font-weight: 600; }
+  .buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+  button { font: inherit; font-size: 14px; padding: 7px 12px; border-radius: 8px; border: 1px solid var(--line); background: #fff; color: var(--ink); cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  button.legal { border-color: var(--accent); color: var(--accent); }
+  button.dim { color: var(--muted); }
+  button.next { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button:disabled { cursor: default; opacity: .45; }
+  button:disabled:hover { border-color: var(--line); }
+  .legend { font-size: 13px; color: var(--muted); margin-top: 10px; }
+  ol.history { margin: 0; padding-left: 22px; }
+  ol.history li { margin: 4px 0; }
+  .rule { padding: 10px 0; border-top: 1px solid var(--line); }
+  .rule:first-of-type { border-top: 0; padding-top: 0; }
+  .rule > span:first-child { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .seg button { border: 0; border-radius: 0; border-right: 1px solid var(--line); }
+  .seg button:last-child { border-right: 0; }
+  .seg button.on { background: var(--accent); color: #fff; }
+  .hint { font-size: 13px; color: var(--muted); margin: 10px 0 0; }
+  .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+  .tab.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+  .tour h3 { margin: 0 0 6px; font-size: 17px; }
+  .tour p { margin: 0 0 10px; }
+  .starts { font-size: 13px; color: var(--muted); }
+  .compare { display: flex; align-items: center; gap: 10px; margin: 12px 0; flex-wrap: wrap; }
+  ol.steps { margin: 12px 0 0; padding-left: 24px; }
+  ol.steps li { margin: 7px 0; }
+  ol.steps li.done button::before { content: "✓ "; }
+  .status { margin-top: 12px; font-size: 14px; }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="badge">Prototype · throwaway</span>
+  <h1>Say Less: Prompt Budget state machine</h1>
+  <p class="lede"><strong>The question.</strong> What states, events and rules should govern a Level's Prompt Budget across Attempts? Does the budget reset every Attempt or drain across them? Does the same Prompt always play out the same way? What happens to a Prompt that's over budget, to tokens lost to a model error, and to an Attempt the player stops? When is a Level lost? Flip the rules on the right, then push the Level through the walkthroughs and see which answers feel right.</p>
+  <p class="lede muted">The Level here is a toy: a gap stands between the Companion and the flag. The Companion is a stand-in that only reports how each Attempt ends. In free play you decide the ending, or let the stand-in decide: it clears the gap only if the Prompt tells it to <em>jump</em>. Token counts are rough (about one per word); the game will count with gpt-tokenizer's cl100k_base.</p>
+</header>
+
+<main>
+  <div>
+    <section class="card">
+      <h2>Current state</h2>
+      <div class="phases" id="phases"></div>
+      <dl class="fields" id="fields"></dl>
+      <div class="changes" id="changes"></div>
+      <p class="message" id="message"></p>
+    </section>
+
+    <section class="card">
+      <h2>Free play</h2>
+      <label class="field" for="prompt">Prompt</label>
+      <textarea id="prompt" rows="2" placeholder="Tell the Companion what to do…"></textarea>
+      <div class="counter" id="counter"></div>
+      <div class="buttons" id="actions"></div>
+      <p class="legend">Outlined buttons are allowed right now. The others still work, so you can see how the Level refuses them.</p>
+    </section>
+
+    <section class="card">
+      <h2>Attempts at this Level</h2>
+      <ol class="history" id="history"></ol>
+    </section>
+  </div>
+
+  <div>
+    <section class="card">
+      <h2>Rules in play</h2>
+      <div id="rules"></div>
+      <p class="hint">Changing a rule or the budget restarts the Level.</p>
+    </section>
+
+    <section class="card">
+      <h2>Guided walkthroughs</h2>
+      <div class="tabs" id="tabs"></div>
+      <div class="tour" id="tour"></div>
+    </section>
+  </div>
+</main>
+
+<script>
+/* ==================================================================
+   PromptBudget: the logic under test.
+   A pure state machine: no DOM and no page code. Once the rules are
+   settled, this block lifts into the real game unchanged.
+   ================================================================== */
+const PromptBudget = (() => {
+  const EVENTS = ['TYPE', 'SEND', 'REPLY_READY', 'CLEARED', 'FAILED', 'MODEL_ERROR', 'STOP', 'RESTART'];
+
+  function newLevel(budget) {
+    return { phase: 'writing', budget, left: budget, spent: 0, draft: '', draftTokens: 0, current: null, attempts: [] };
+  }
+
+  // Why an event is refused right now, in plain words; null when it's allowed.
+  function refusal(level, type, rules) {
+    const p = level.phase;
+    const over = p === 'cleared' || p === 'lost';
+    const busy = p === 'waiting' || p === 'acting';
+    switch (type) {
+      case 'RESTART': return null;
+      case 'TYPE': return over ? 'The Level is over. Restart it to write a new Prompt.' : null;
+      case 'SEND':
+        if (over) return 'The Level is over. Restart it to try again.';
+        if (busy) return 'An Attempt is already under way.';
+        if (level.draftTokens === 0) return 'Write a Prompt first.';
+        if (level.draftTokens > level.left && rules.overBudget === 'block') {
+          return `The Prompt is ${level.draftTokens} tokens, but only ${level.left} are left. Shorten it.`;
+        }
+        return null;
+      case 'REPLY_READY': return p === 'waiting' ? null : 'No reply is expected right now.';
+      case 'CLEARED':
+      case 'FAILED':
+        if (p === 'acting') return null;
+        return p === 'waiting' ? 'The Companion hasn’t started acting yet.' : 'The Companion isn’t acting right now.';
+      case 'MODEL_ERROR': return busy ? null : 'No model call is in flight.';
+      case 'STOP':
+        if (!busy) return 'There’s no Attempt to stop.';
+        return rules.stopAllowed ? null : 'Stopping isn’t allowed under the current rules.';
+      default: return 'Unknown action.';
+    }
+  }
+
+  function endAttempt(level, outcome, rules) {
+    const attempt = { ...level.current, outcome, refunded: false };
+    let { left, spent } = level;
+    if (outcome === 'error' && rules.refundOnError) {
+      attempt.refunded = true;
+      left += attempt.tokens;
+      spent -= attempt.tokens;
+    }
+    let phase;
+    if (outcome === 'cleared') phase = 'cleared';
+    else if (rules.budgetMode === 'reset') { left = level.budget; phase = 'writing'; }
+    else phase = left === 0 ? 'lost' : 'writing';
+    return { ...level, phase, left, spent, current: null, attempts: [...level.attempts, attempt] };
+  }
+
+  const s = n => (n === 1 ? '' : 's');
+
+  function step(level, event, rules) {
+    const why = refusal(level, event.type, rules);
+    if (why) return { level, accepted: false, note: why };
+
+    switch (event.type) {
+      case 'RESTART':
+        return { level: newLevel(level.budget), accepted: true, note: 'Level restarted with the full budget.' };
+      case 'TYPE':
+        return { level: { ...level, draft: event.text, draftTokens: event.tokens }, accepted: true, note: '' };
+      case 'SEND': {
+        const tokens = Math.min(level.draftTokens, level.left);
+        const cut = level.draftTokens - tokens;
+        const current = { number: level.attempts.length + 1, prompt: level.draft, tokens, cut };
+        return {
+          level: { ...level, phase: 'waiting', left: level.left - tokens, spent: level.spent + tokens, current },
+          accepted: true,
+          note: cut
+            ? `Sent, but cut to fit: the last ${cut} token${s(cut)} were dropped. ${tokens} token${s(tokens)} spent.`
+            : `Sent. ${tokens} token${s(tokens)} spent the moment you pressed Send.`,
+        };
+      }
+      case 'REPLY_READY':
+        return { level: { ...level, phase: 'acting' }, accepted: true, note: 'The reply arrived. The Companion starts acting.' };
+      case 'CLEARED': {
+        const next = endAttempt(level, 'cleared', rules);
+        return { level: next, accepted: true, note: `The Companion reached the flag. Level cleared using ${next.spent} token${s(next.spent)}.` };
+      }
+      case 'FAILED':
+      case 'STOP':
+      case 'MODEL_ERROR': {
+        const outcome = { FAILED: 'failed', STOP: 'stopped', MODEL_ERROR: 'error' }[event.type];
+        const next = endAttempt(level, outcome, rules);
+        const attempt = next.attempts[next.attempts.length - 1];
+        const what = {
+          failed: 'The Companion fell short.',
+          stopped: 'You stopped the Companion. That counts as a failed Attempt, and the tokens stay spent.',
+          error: attempt.refunded
+            ? `The model failed. The ${attempt.tokens} token${s(attempt.tokens)} came back, and the Attempt doesn’t count.`
+            : 'The model failed. The tokens stay spent.',
+        }[outcome];
+        const then = next.phase === 'lost' ? ' No tokens are left: Level lost.'
+          : rules.budgetMode === 'reset' ? ' The budget resets for the next Attempt.' : '';
+        return { level: next, accepted: true, note: what + then };
+      }
+    }
+  }
+
+  function allowed(level, rules) {
+    return EVENTS.filter(type => refusal(level, type, rules) === null);
+  }
+
+  return { newLevel, step, allowed };
+})();
+
+/* The Companion is a black box to the machine. This stand-in decides how
+   an Attempt ends from the Prompt it actually received. */
+const StandIn = {
+  outcome(received, attemptNumber, repeatable) {
+    const saysJump = /\b(jump|hop|leap)/i.test(received);
+    const misreads = !repeatable && attemptNumber % 3 === 0;
+    return saysJump !== misreads ? 'CLEARED' : 'FAILED';
+  },
+};
+
+/* Rough token count: about one per word, long words and numbers split,
+   punctuation separate. Returns where each token ends in the text. */
+function roughTokens(text) {
+  const ends = [];
+  for (const m of text.matchAll(/[A-Za-z']+|\d+|[^\sA-Za-z\d]/g)) {
+    const w = m[0], start = m.index;
+    if (/^\d+$/.test(w)) {
+      for (let i = 3; i < w.length + 3; i += 3) ends.push(start + Math.min(i, w.length));
+    } else if (w.length > 8 && /^[A-Za-z']+$/.test(w)) {
+      ends.push(start + Math.ceil(w.length / 2), start + w.length);
+    } else {
+      ends.push(start + w.length);
+    }
+  }
+  return ends;
+}
+
+// What the Companion actually received: a Prompt cut to fit loses its end.
+function received(attempt) {
+  if (!attempt.cut) return attempt.prompt;
+  return attempt.prompt.slice(0, roughTokens(attempt.prompt)[attempt.tokens - 1]).trim();
+}
+
+/* ==================================================================
+   The page: a thin shell over PromptBudget. Throwaway.
+   ================================================================== */
+const PHASE_LABEL = {
+  writing: 'Writing a Prompt', waiting: 'Waiting for the reply', acting: 'Companion acting',
+  cleared: 'Level cleared', lost: 'Level lost',
+};
+const ACTION_LABEL = {
+  SEND: 'Send Prompt', REPLY_READY: 'Reply arrives', CLEARED: 'Companion reaches the flag',
+  FAILED: 'Companion falls short', MODEL_ERROR: 'Model error or garbled reply', STOP: 'Stop the Companion',
+  AUTO: 'Let the stand-in play it out', RESTART: 'Restart Level',
+};
+const FREE_ACTIONS = ['SEND', 'REPLY_READY', 'CLEARED', 'FAILED', 'MODEL_ERROR', 'STOP', 'AUTO', 'RESTART'];
+const RULES = [
+  { key: 'budgetMode', label: 'Budget across Attempts', options: [['drain', 'Drains across Attempts'], ['reset', 'Resets every Attempt']] },
+  { key: 'repeatable', label: 'Same Prompt, same result?', options: [[true, 'Yes, repeatable'], [false, 'No, replies vary']] },
+  { key: 'overBudget', label: 'Prompt over budget', options: [['block', 'Block Send'], ['cut', 'Cut it to fit']] },
+  { key: 'refundOnError', label: 'Model error or garbled reply', options: [[true, 'Refund the tokens'], [false, 'Tokens stay spent']] },
+  { key: 'stopAllowed', label: 'Stopping the Companion', options: [[true, 'Allowed, counts as failed'], [false, 'Not allowed']] },
+];
+const BUDGETS = [12, 24, 48];
+const DEFAULT_RULES = { budgetMode: 'drain', repeatable: true, overBudget: 'block', refundOnError: true, stopAllowed: true };
+
+const TOURS = [
+  {
+    id: 'happy', title: 'Happy path', budget: 24, rules: {},
+    text: 'A Prompt that says to jump clears the gap on the first Attempt. Watch when the tokens leave the budget: the moment you press Send, not when the Companion finishes.',
+    steps: [['TYPE', 'Walk right and jump the gap'], ['SEND'], ['REPLY_READY'], ['CLEARED']],
+  },
+  {
+    id: 'running-out', title: 'Running out', budget: 12, rules: { budgetMode: 'drain' },
+    text: 'Three Prompts that never say jump drain a 12-token budget. The Level is lost only when a failed Attempt leaves nothing. Notice that with 1 token left the Level is still alive: a Prompt of just “Jump” would have cleared it.',
+    steps: [
+      ['TYPE', 'Walk right to the edge'], ['SEND'], ['REPLY_READY'], ['FAILED'],
+      ['TYPE', 'Walk right to the flag now'], ['SEND'], ['REPLY_READY'], ['FAILED'],
+      ['TYPE', 'Go'], ['SEND'], ['REPLY_READY'], ['FAILED'],
+    ],
+  },
+  {
+    id: 'last-token', title: 'Clear on the last token', budget: 12, rules: { budgetMode: 'drain' },
+    text: 'The second Prompt spends the very last token and clears the gap. Clearing wins: the Level ends cleared, not lost.',
+    steps: [
+      ['TYPE', 'Walk right to the edge'], ['SEND'], ['REPLY_READY'], ['FAILED'],
+      ['TYPE', 'Walk right, jump the gap now'], ['SEND'], ['REPLY_READY'], ['CLEARED'],
+    ],
+  },
+  {
+    id: 'model-error', title: 'Model error', budget: 24, rules: {},
+    compare: { rule: 'refundOnError', first: true },
+    text: 'The model fails before the Companion acts, and the player sends the same Prompt again. Refunded, the glitch costs nothing and the Attempt doesn’t count. Not refunded, it costs the whole Prompt.',
+    steps: [['TYPE', 'Walk right and jump the gap'], ['SEND'], ['MODEL_ERROR'], ['SEND'], ['REPLY_READY'], ['CLEARED']],
+  },
+  {
+    id: 'same-prompt', title: 'Same Prompt, three times', budget: 24, rules: { budgetMode: 'reset' },
+    compare: { rule: 'repeatable', first: false },
+    text: 'With a budget that resets, the player sends “Walk right” three times and lets the stand-in play each one. When replies vary, the third try gets lucky and clears the gap: re-rolling beats the puzzle. When replies are repeatable, it fails every time, so the player has to change the Prompt.',
+    steps: [['TYPE', 'Walk right'], ['SEND'], ['AUTO'], ['SEND'], ['AUTO'], ['SEND'], ['AUTO']],
+  },
+  {
+    id: 'over-budget', title: 'Over budget', budget: 12, rules: {},
+    compare: { rule: 'overBudget', first: 'block' },
+    text: 'A 14-token Prompt meets a 12-token budget. Blocked, the player has to shorten it. Cut to fit, the end of the Prompt (“then jump”) is silently dropped, the Companion falls short, and the whole budget is gone.',
+    steps: [['TYPE', 'Please walk carefully to the right edge of the platform and then jump'], ['SEND'], ['AUTO']],
+  },
+  {
+    id: 'stop', title: 'Stop mid-Attempt', budget: 24, rules: {},
+    compare: { rule: 'stopAllowed', first: true },
+    text: 'The Companion heads the wrong way and the player tries to stop it. Allowed, the Attempt ends as failed and the tokens stay spent. Not allowed, the player has to watch it finish.',
+    steps: allowed => allowed
+      ? [['TYPE', 'Walk left'], ['SEND'], ['REPLY_READY'], ['STOP']]
+      : [['TYPE', 'Walk left'], ['SEND'], ['REPLY_READY'], ['STOP'], ['FAILED']],
+  },
+  {
+    id: 'illegal', title: 'Things that shouldn’t work', budget: 24, rules: {},
+    text: 'Some of these steps should be refused, each with a reason: sending an empty Prompt, sending again while an Attempt is under way, and declaring success before the reply arrives.',
+    steps: [['SEND'], ['TYPE', 'Jump over the gap'], ['SEND'], ['SEND'], ['CLEARED'], ['REPLY_READY'], ['CLEARED']],
+  },
+];
+
+let rules = { ...DEFAULT_RULES };
+let level = PromptBudget.newLevel(24);
+let last = { accepted: true, note: 'Write a Prompt, or pick a walkthrough on the right.', changes: [] };
+let tour = null; // { id, variant, index, offScript }
+
+const $ = id => document.getElementById(id);
+const promptBox = $('prompt');
+const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+
+function snapshot(l) { return { phase: l.phase, left: l.left, spent: l.spent, attempts: l.attempts.length }; }
+function describeChanges(a, b) {
+  const names = { left: 'Tokens left', spent: 'Tokens spent', attempts: 'Attempts' };
+  return Object.keys(a).filter(k => a[k] !== b[k]).map(k =>
+    k === 'phase' ? `${PHASE_LABEL[a[k]]} → ${PHASE_LABEL[b[k]]}` : `${names[k]}: ${a[k]} → ${b[k]}`);
+}
+
+function apply(event) {
+  const r = PromptBudget.step(level, event, rules);
+  level = r.level;
+  return r;
+}
+
+function standInPlays() {
+  if (level.phase !== 'waiting' && level.phase !== 'acting') {
+    return { accepted: false, note: 'Nothing to play out yet: send a Prompt first.' };
+  }
+  if (level.phase === 'waiting') apply({ type: 'REPLY_READY' });
+  const got = received(level.current);
+  const outcome = StandIn.outcome(got, level.current.number, rules.repeatable);
+  const r = apply({ type: outcome });
+  return { accepted: true, note: `The stand-in read “${got}” and ${outcome === 'CLEARED' ? 'jumped the gap' : 'didn’t jump'}. ${r.note}` };
+}
+
+function perform(action) {
+  const before = snapshot(level);
+  let r;
+  if (action.type === 'AUTO') {
+    r = standInPlays();
+  } else if (action.type === 'TYPE') {
+    r = apply({ type: 'TYPE', text: action.text, tokens: roughTokens(action.text).length });
+    if (r.accepted) r = { ...r, note: `Typed a ${level.draftTokens}-token Prompt.` };
+  } else {
+    r = apply(action);
+  }
+  last = { accepted: r.accepted, note: r.note, changes: r.accepted ? describeChanges(before, snapshot(level)) : [] };
+}
+
+function restart(note) {
+  level = PromptBudget.newLevel(level.budget);
+  promptBox.value = '';
+  tour = null;
+  last = { accepted: true, note, changes: [] };
+  render();
+}
+
+function startTour(id, variant) {
+  const t = TOURS.find(x => x.id === id);
+  const v = variant !== undefined ? variant : t.compare ? t.compare.first : undefined;
+  rules = { ...DEFAULT_RULES, ...t.rules, ...(t.compare ? { [t.compare.rule]: v } : {}) };
+  level = PromptBudget.newLevel(t.budget);
+  promptBox.value = '';
+  tour = { id, variant: v, index: 0, offScript: false };
+  last = { accepted: true, note: `Walkthrough “${t.title}” started. Press the steps in order.`, changes: [] };
+  render();
+}
+
+const tourSteps = t => (typeof t.steps === 'function' ? t.steps(tour.variant) : t.steps);
+const stepLabel = ([type, text]) => (type === 'TYPE' ? `Type “${text}”` : ACTION_LABEL[type]);
+
+function runStep(i) {
+  const [type, text] = tourSteps(TOURS.find(x => x.id === tour.id))[i];
+  if (type === 'TYPE') promptBox.value = text;
+  perform(type === 'TYPE' ? { type, text } : { type });
+  tour.index = i + 1;
+  render();
+}
+
+function render({ keepMessage = false } = {}) {
+  const legal = PromptBudget.allowed(level, rules);
+  const legalOf = t => (t === 'AUTO' ? legal.includes('REPLY_READY') || legal.includes('CLEARED') : legal.includes(t));
+
+  const flow = ['writing', 'waiting', 'acting'].map(p => `<span class="phase${p === level.phase ? ' on' : ''}">${PHASE_LABEL[p]}</span>`).join('<span class="sep">→</span>');
+  const ends = ['cleared', 'lost'].map(p => `<span class="phase${p === level.phase ? ' on' : ''}">${PHASE_LABEL[p]}</span>`).join('<span class="sep">or</span>');
+  $('phases').innerHTML = `${flow}<span class="sep">→</span>${ends}`;
+
+  const voided = level.attempts.filter(a => a.refunded).length;
+  const cur = level.current;
+  $('fields').innerHTML = `
+    <dt>Prompt Budget</dt><dd>${plural(level.budget, 'token')}</dd>
+    <dt>Tokens left</dt><dd>${level.left}</dd>
+    <dt>Tokens spent</dt><dd>${level.spent}</dd>
+    <dt>Attempts</dt><dd>${level.attempts.length - voided}${voided ? ` <span class="muted">(plus ${voided} voided by model errors)</span>` : ''}</dd>
+    <dt>Current Attempt</dt><dd>${cur ? `#${cur.number} · “${esc(received(cur))}” · ${plural(cur.tokens, 'token')}` : '<span class="muted">none</span>'}</dd>
+    <dt>Allowed now</dt><dd>${FREE_ACTIONS.filter(legalOf).map(t => ACTION_LABEL[t]).join(', ')}</dd>`;
+
+  $('changes').innerHTML = last.changes.map(c => `<span class="chip">${esc(c)}</span>`).join('');
+  if (!keepMessage) {
+    $('message').textContent = last.accepted ? last.note : `Refused: ${last.note}`;
+    $('message').className = `message${last.accepted ? '' : ' refused'}`;
+  }
+
+  const over = level.phase === 'cleared' || level.phase === 'lost';
+  promptBox.disabled = over;
+  promptBox.placeholder = over ? 'The Level is over. Restart it to write again.' : 'Tell the Companion what to do…';
+  const tooLong = level.phase === 'writing' && level.draftTokens > level.left;
+  $('counter').textContent = `${plural(level.draftTokens, 'token')} typed · ${level.left} left${tooLong ? ' · over budget' : ''}`;
+  $('counter').className = `counter${tooLong ? ' over' : ''}`;
+
+  $('actions').innerHTML = FREE_ACTIONS.map(t => `<button data-action="${t}" class="${legalOf(t) ? 'legal' : 'dim'}">${ACTION_LABEL[t]}</button>`).join('');
+
+  const outcomeText = a => ({
+    cleared: 'cleared the Level',
+    failed: 'fell short',
+    stopped: 'stopped by you, counts as failed',
+    error: a.refunded ? 'model error: voided, tokens refunded' : 'model error: tokens stay spent',
+  }[a.outcome]);
+  $('history').innerHTML = level.attempts.length
+    ? level.attempts.map(a => `<li>“${esc(a.prompt)}” · ${plural(a.tokens, 'token')} · ${outcomeText(a)}${a.cut ? ` · <span class="muted">cut to fit, the Companion only got “${esc(received(a))}”</span>` : ''}</li>`).join('')
+    : '<li class="muted">No Attempts yet.</li>';
+
+  $('rules').innerHTML = RULES.map(r => `
+    <div class="rule"><span>${r.label}</span><span class="seg">${r.options.map(([v, l]) =>
+      `<button data-rule="${r.key}" data-value="${v}" class="${rules[r.key] === v ? 'on' : ''}">${l}</button>`).join('')}</span></div>`).join('')
+    + `<div class="rule"><span>Level's Prompt Budget</span><span class="seg">${BUDGETS.map(b =>
+      `<button data-budget="${b}" class="${level.budget === b ? 'on' : ''}">${b} tokens</button>`).join('')}</span></div>`;
+
+  $('tabs').innerHTML = TOURS.map(t => `<button class="tab${tour && tour.id === t.id ? ' on' : ''}" data-tour="${t.id}">${t.title}</button>`).join('');
+  $('tour').innerHTML = tour ? tourPanel() : '<p class="muted">Pick a scenario. Each one resets the Level and sets the rules it needs, so it runs the same way every time.</p>';
+}
+
+function tourPanel() {
+  const t = TOURS.find(x => x.id === tour.id);
+  const steps = tourSteps(t);
+  const ruleText = RULES.map(r => r.options.find(([v]) => v === rules[r.key])[1]).join(' · ');
+  const cmp = t.compare && RULES.find(r => r.key === t.compare.rule);
+  const done = tour.index >= steps.length;
+  return `
+    <h3>${t.title}</h3>
+    <p>${t.text}</p>
+    <p class="starts">Starts with a ${t.budget}-token budget · ${ruleText}</p>
+    ${cmp ? `<div class="compare"><span>Compare: ${cmp.label}</span><span class="seg">${cmp.options.map(([v, l]) =>
+      `<button data-variant="${v}" class="${tour.variant === v ? 'on' : ''}">${l}</button>`).join('')}</span></div>` : ''}
+    <ol class="steps">${steps.map((st, i) => `
+      <li class="${i < tour.index ? 'done' : ''}"><button data-step="${i}" class="${i === tour.index && !tour.offScript ? 'next' : ''}"
+        ${i !== tour.index || tour.offScript ? 'disabled' : ''}>${esc(stepLabel(st))}</button></li>`).join('')}</ol>
+    <p class="status">${tour.offScript
+      ? 'You went off-script with free play. <button data-restart-tour>Start again</button>'
+      : done ? `Done. ${cmp ? 'Switch the comparison above to replay it under the other rule.' : ''} <button data-restart-tour>Start again</button>` : ''}</p>`;
+}
+
+document.addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  const d = b.dataset;
+  if (d.action) {
+    if (tour) tour.offScript = true;
+    if (d.action === 'RESTART') { const t = tour; restart('Level restarted with the full budget.'); tour = t; render(); return; }
+    perform({ type: d.action });
+    render();
+  } else if (d.rule) {
+    const def = RULES.find(r => r.key === d.rule);
+    rules = { ...rules, [d.rule]: def.options.find(([v]) => String(v) === d.value)[0] };
+    restart('Rules changed, so the Level restarted.');
+  } else if (d.budget) {
+    level = PromptBudget.newLevel(Number(d.budget));
+    restart(`Budget set to ${d.budget} tokens, so the Level restarted.`);
+  } else if (d.tour) {
+    startTour(d.tour);
+  } else if (d.variant !== undefined) {
+    const cmp = RULES.find(r => r.key === TOURS.find(x => x.id === tour.id).compare.rule);
+    startTour(tour.id, cmp.options.find(([v]) => String(v) === d.variant)[0]);
+  } else if (d.step !== undefined) {
+    runStep(Number(d.step));
+  } else if ('restartTour' in d) {
+    startTour(tour.id, tour.variant);
+  }
+});
+
+promptBox.addEventListener('input', () => {
+  level = PromptBudget.step(level, { type: 'TYPE', text: promptBox.value, tokens: roughTokens(promptBox.value).length }, rules).level;
+  if (tour) tour.offScript = true;
+  const wasRefused = !last.accepted;
+  if (wasRefused) last = { accepted: true, note: 'Editing the Prompt.', changes: [] };
+  render({ keepMessage: !wasRefused });
+});
+
+render();
+</script>
+</body>
+</html>
