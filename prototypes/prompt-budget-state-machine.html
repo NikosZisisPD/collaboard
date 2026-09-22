@@ -81,6 +81,7 @@
   <span class="badge">Prototype · throwaway</span>
   <h1>Say Less: Prompt Budget state machine</h1>
   <p class="lede"><strong>The question.</strong> What states, events and rules should govern a Level's Prompt Budget across Attempts? Does the budget reset every Attempt or drain across them? Does the same Prompt always play out the same way? What happens to a Prompt that's over budget, to tokens lost to a model error, and to an Attempt the player stops? When is a Level lost? Flip the rules on the right, then push the Level through the walkthroughs and see which answers feel right.</p>
+  <p class="lede"><strong>Decided.</strong> The options marked ✓ are the rules chosen in <a href="https://github.com/NikosZisisPD/collaboard/issues/5">Prompt Budget state machine</a>. The others stay switchable, so you can still compare.</p>
   <p class="lede muted">The Level here is a toy: a gap stands between the Companion and the flag. The Companion is a stand-in that only reports how each Attempt ends. In free play you decide the ending, or let the stand-in decide: it clears the gap only if the Prompt tells it to <em>jump</em>. Token counts are rough (about one per word); the game will count with gpt-tokenizer's cl100k_base.</p>
 </header>
 
@@ -291,7 +292,9 @@ const RULES = [
   { key: 'stopAllowed', label: 'Stopping the Companion', options: [[true, 'Allowed, counts as failed'], [false, 'Not allowed']] },
 ];
 const BUDGETS = [12, 24, 48];
+// The rules chosen in the ticket; walkthroughs start from these.
 const DEFAULT_RULES = { budgetMode: 'drain', repeatable: true, overBudget: 'block', refundOnError: true, stopAllowed: true };
+const decided = (key, value) => (DEFAULT_RULES[key] === value ? ' ✓' : '');
 
 const TOURS = [
   {
@@ -472,7 +475,7 @@ function render({ keepMessage = false } = {}) {
 
   $('rules').innerHTML = RULES.map(r => `
     <div class="rule"><span>${r.label}</span><span class="seg">${r.options.map(([v, l]) =>
-      `<button data-rule="${r.key}" data-value="${v}" class="${rules[r.key] === v ? 'on' : ''}">${l}</button>`).join('')}</span></div>`).join('')
+      `<button data-rule="${r.key}" data-value="${v}" class="${rules[r.key] === v ? 'on' : ''}">${l}${decided(r.key, v)}</button>`).join('')}</span></div>`).join('')
     + `<div class="rule"><span>Level's Prompt Budget</span><span class="seg">${BUDGETS.map(b =>
       `<button data-budget="${b}" class="${level.budget === b ? 'on' : ''}">${b} tokens</button>`).join('')}</span></div>`;
 
@@ -491,7 +494,7 @@ function tourPanel() {
     <p>${t.text}</p>
     <p class="starts">Starts with a ${t.budget}-token budget · ${ruleText}</p>
     ${cmp ? `<div class="compare"><span>Compare: ${cmp.label}</span><span class="seg">${cmp.options.map(([v, l]) =>
-      `<button data-variant="${v}" class="${tour.variant === v ? 'on' : ''}">${l}</button>`).join('')}</span></div>` : ''}
+      `<button data-variant="${v}" class="${tour.variant === v ? 'on' : ''}">${l}${decided(cmp.key, v)}</button>`).join('')}</span></div>` : ''}
     <ol class="steps">${steps.map((st, i) => `
       <li class="${i < tour.index ? 'done' : ''}"><button data-step="${i}" class="${i === tour.index && !tour.offScript ? 'next' : ''}"
         ${i !== tour.index || tour.offScript ? 'disabled' : ''}>${esc(stepLabel(st))}</button></li>`).join('')}</ol>
