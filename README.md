@@ -16,6 +16,8 @@ Then open http://localhost:8080. `npm run dev` makes no network calls outside yo
 ## Other scripts
 
 - `npm run build` type-checks the code and builds the game into `dist/`.
+- `npm test` runs the unit tests.
+- `npm run test:live` checks that the local model still plans the demo Levels' Prompts exactly as they were tuned. It needs Ollama running with `qwen3.5:4b`. Run it after touching the Companion's hidden instructions.
 - `npm run check:model` checks that the local model answers a localhost page. It needs Ollama running with `qwen3.5:4b`; see [Local model answering from a localhost page](https://github.com/NikosZisisPD/collaboard/issues/6).
 
 ## Where things are

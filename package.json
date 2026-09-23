@@ -6,6 +6,7 @@
     "dev": "vite --config vite/config.dev.mjs",
     "build": "tsc && vite build --config vite/config.prod.mjs",
     "test": "vitest run",
+    "test:live": "OLLAMA_LIVE=1 vitest run src/companion/companion.live.test.ts",
     "check:model": "node tools/model-check/serve.mjs"
   },
   "engines": {
