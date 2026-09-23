@@ -1,5 +1,5 @@
 import { AUTO, Game } from 'phaser';
-import { Level } from './scenes/Level';
+import { LevelPlayer } from './scenes/LevelPlayer';
 
 //  Find out more information about the Game Config at:
 //  https://docs.phaser.io/api-documentation/typedef/types-core#gameconfig
@@ -10,7 +10,7 @@ const config: Phaser.Types.Core.GameConfig = {
     parent: 'game-container',
     backgroundColor: '#8fd3ff',
     scene: [
-        Level
+        LevelPlayer
     ]
 };
 
