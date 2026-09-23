@@ -1,0 +1,44 @@
+body {
+    margin: 0;
+    background-color: #11131a;
+    color: #e6e8ee;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+#app {
+    min-height: 100vh;
+    box-sizing: border-box;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+}
+
+#game-container canvas {
+    display: block;
+    border-radius: 8px;
+}
+
+.prompt {
+    width: 1024px;
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.prompt label {
+    font-weight: 600;
+}
+
+.prompt textarea {
+    font: inherit;
+    padding: 10px 12px;
+    border: 1px solid #3a3f4d;
+    border-radius: 8px;
+    background-color: #1b1e27;
+    color: inherit;
+    resize: vertical;
+}
