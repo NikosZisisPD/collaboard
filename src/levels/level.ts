@@ -1,5 +1,5 @@
 // A Level file and the reader that turns its grid into tiles and Places, as settled in
-// https://github.com/NikosZisisPD/collaboard/issues/12. Data and logic only: no Phaser,
+// https://github.com/NikosZisisPD/say-less/issues/12. Data and logic only: no Phaser,
 // so Node can load Levels too.
 import type { Place, PlaceKind } from '../companion/companion.ts';
 

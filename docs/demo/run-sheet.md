@@ -1,6 +1,6 @@
 # Demo run sheet: Say Less and the wayfinder skill (30 minutes)
 
-Settled in [Demo run sheet: the 30-minute walkthrough](https://github.com/NikosZisisPD/collaboard/issues/17).
+Settled in [Demo run sheet: the 30-minute walkthrough](https://github.com/NikosZisisPD/say-less/issues/17).
 
 The story: one loose idea became a map on GitHub, the map was worked one ticket at a time, and the result is a game you can play. The audience then works the last ticket with you.
 
@@ -11,12 +11,12 @@ The story: one loose idea became a map on GitHub, the map was worked one ticket 
 3. Run `npm run check:levels`. All 12 checks should pass, in about 20 seconds.
 4. Run `npm run dev` and open http://localhost:8080. Mind the Gap should be showing, with the full 30-token budget.
 5. Open these tabs, in this order:
-   - [the map](https://github.com/NikosZisisPD/collaboard/issues/2);
-   - [Engine facts: Phaser vs Godot](https://github.com/NikosZisisPD/collaboard/issues/3);
-   - [Prompt Budget state machine](https://github.com/NikosZisisPD/collaboard/issues/5), plus the prototype file `.worktrees/prototype-prompt-budget-state-machine/prototypes/prompt-budget-state-machine.html`;
-   - [Local model answering from a localhost page](https://github.com/NikosZisisPD/collaboard/issues/6), with a terminal ready to run `npm run check:model`;
-   - [How the Companion turns a Prompt into actions](https://github.com/NikosZisisPD/collaboard/issues/8);
-   - [Live demo: the audience designs and beats a bonus Level](https://github.com/NikosZisisPD/collaboard/issues/11).
+   - [the map](https://github.com/NikosZisisPD/say-less/issues/2);
+   - [Engine facts: Phaser vs Godot](https://github.com/NikosZisisPD/say-less/issues/3);
+   - [Prompt Budget state machine](https://github.com/NikosZisisPD/say-less/issues/5), plus the prototype file `.worktrees/prototype-prompt-budget-state-machine/prototypes/prompt-budget-state-machine.html`;
+   - [Local model answering from a localhost page](https://github.com/NikosZisisPD/say-less/issues/6), with a terminal ready to run `npm run check:model`;
+   - [How the Companion turns a Prompt into actions](https://github.com/NikosZisisPD/say-less/issues/8);
+   - [Live demo: the audience designs and beats a bonus Level](https://github.com/NikosZisisPD/say-less/issues/11).
 6. Close memory-hungry apps. The model needs about 3 GB.
 
 ## The 30 minutes

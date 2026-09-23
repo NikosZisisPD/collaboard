@@ -2,7 +2,7 @@
 
 ### Issue tracker
 
-Issues live in GitHub Issues for `NikosZisisPD/collaboard`. See `docs/agents/issue-tracker.md`.
+Issues live in GitHub Issues for `NikosZisisPD/say-less`. See `docs/agents/issue-tracker.md`.
 
 ### Domain docs
 

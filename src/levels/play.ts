@@ -1,5 +1,5 @@
 // Acts out a Plan on a Level, tile by tile, as decided in
-// https://github.com/NikosZisisPD/collaboard/issues/8. Pure and deterministic: the same Plan
+// https://github.com/NikosZisisPD/say-less/issues/8. Pure and deterministic: the same Plan
 // always ends the same way on the same Level, and the Phaser scene only animates the steps.
 import type { Action } from '../companion/companion.ts';
 import type { Layout } from './level.ts';

@@ -1,5 +1,5 @@
 // The Prompt Budget state machine, lifted from the prototype settled in
-// https://github.com/NikosZisisPD/collaboard/issues/5. Pure: no React, no Phaser.
+// https://github.com/NikosZisisPD/say-less/issues/5. Pure: no React, no Phaser.
 
 export type Phase = 'writing' | 'waiting' | 'acting' | 'cleared' | 'lost';
 

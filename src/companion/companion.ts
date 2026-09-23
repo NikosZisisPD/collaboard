@@ -1,5 +1,5 @@
 // The Companion client: turns a Prompt into a Plan with the local model, as decided in
-// https://github.com/NikosZisisPD/collaboard/issues/8.
+// https://github.com/NikosZisisPD/say-less/issues/8.
 
 export type PlaceKind = 'edge' | 'gap' | 'switch' | 'door' | 'flag';
 
