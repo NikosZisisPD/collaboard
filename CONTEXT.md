@@ -21,7 +21,7 @@ The limit, in tokens, that a Level sets on what the player types. Only the playe
 _Avoid_: Token budget, energy, charge
 
 **Place**:
-A named spot in a Level, such as the edge, the switch or the flag, that the Companion knows by name but not by position.
+A named spot in a Level, such as the edge, the switch or the flag, that the Companion knows by name but not by position. The game works out every Place from the Level's tiles. When a Level has more than one of a kind, they're numbered from the left: gap 1, gap 2.
 _Avoid_: Landmark, waypoint, target
 
 **Plan**:
@@ -38,6 +38,10 @@ _Avoid_: Glitch, error Attempt
 
 ### Level elements
 
+**Start**:
+The tile where the Companion begins each Attempt: the Level's first tile.
+_Avoid_: Spawn
+
 **Flag**:
 The tile the Companion must reach to clear a Level.
 _Avoid_: Goal, exit, finish
@@ -51,7 +55,7 @@ The last tile of ground before a Gap.
 _Avoid_: Ledge, cliff, brink
 
 **Switch**:
-A tile that opens the Level's Door when the Companion uses it while standing on it.
+A tile that opens its Door when the Companion uses it while standing on it. Switch 1 opens Door 1, and so on.
 _Avoid_: Button, lever, plate
 
 **Door**:
