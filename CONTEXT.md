@@ -35,3 +35,25 @@ _Avoid_: Run, turn, try
 **Voided Attempt**:
 An Attempt ended by a model error or a reply the game can't read, rather than by the Companion's play. Its tokens are refunded and it doesn't count.
 _Avoid_: Glitch, error Attempt
+
+### Level elements
+
+**Flag**:
+The tile the Companion must reach to clear a Level.
+_Avoid_: Goal, exit, finish
+
+**Gap**:
+A hole in the ground that the Companion falls into unless it jumps over it.
+_Avoid_: Pit, hole, chasm
+
+**Edge**:
+The last tile of ground before a Gap.
+_Avoid_: Ledge, cliff, brink
+
+**Switch**:
+A tile that opens the Level's Door when the Companion uses it while standing on it.
+_Avoid_: Button, lever, plate
+
+**Door**:
+A tile that blocks the way until its Switch is used.
+_Avoid_: Gate, barrier
