@@ -82,10 +82,22 @@ function actionFormat(placeNames: string[])
 
 const VERBS: readonly string[] = ['walk', 'jump', 'use', 'wait'];
 const TIMEOUT_MS = 15_000;
+const MODEL = 'qwen3.5:4b';
+const CHAT_URL = 'http://127.0.0.1:11434/api/chat';
+
+// Loads the model before the first Attempt, which would otherwise wait for it.
+export async function warmUp(): Promise<void>
+{
+    await fetch(CHAT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: MODEL, messages: [], keep_alive: -1 }),
+    }).catch(() => undefined);
+}
 
 export const ollamaChat: Chat = async (request, signal) =>
 {
-    const response = await fetch('http://127.0.0.1:11434/api/chat', {
+    const response = await fetch(CHAT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(request),
@@ -117,7 +129,7 @@ export async function requestPlan(prompt: string, places: Place[], chat: Chat = 
     try
     {
         const reply = await chat({
-            model: 'qwen3.5:4b',
+            model: MODEL,
             messages: [
                 { role: 'system', content: hiddenInstructions(places) },
                 { role: 'user', content: prompt },

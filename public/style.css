@@ -86,7 +86,7 @@ body {
     margin: 4px 0 0;
 }
 
-.stub {
+.controls {
     display: flex;
     flex-wrap: wrap;
     align-items: center;

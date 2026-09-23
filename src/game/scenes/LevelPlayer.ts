@@ -9,16 +9,15 @@ const GROUND_Y = 400;
 const STEP_MS = 170;
 const COLORS = { ground: 0x5b8c3a, groundTop: 0x3f6b24, companion: 0x4f46e5, switch: 0xf5b700, pressed: 0x9a7400, door: 0x7a4a24, flag: 0xe0413c };
 
-const INLINE_LEVEL: Level = { name: 'Mind the Gap', promptBudget: 30, grid: ['C........F', '####..####'] };
-
 export class LevelPlayer extends Scene
 {
-    private layout: Layout;
+    private layout: Layout | null = null;
     private originX = 0;
     private companion: GameObjects.Rectangle;
     private switches: GameObjects.Rectangle[] = [];
     private doors: GameObjects.Rectangle[] = [];
     private acting = false;
+    private attempt = 0;
 
     constructor ()
     {
@@ -29,21 +28,23 @@ export class LevelPlayer extends Scene
     {
         EventBus.on('show-level', this.showLevel, this);
         EventBus.on('act-out', this.actOut, this);
+        EventBus.on('stop-acting', this.stopActing, this);
         // React's development mode mounts the game twice, and the destroyed copy must stop listening.
         const stopListening = () =>
         {
             EventBus.off('show-level', this.showLevel, this);
             EventBus.off('act-out', this.actOut, this);
+            EventBus.off('stop-acting', this.stopActing, this);
         };
         this.events.once(Scenes.Events.SHUTDOWN, stopListening);
         this.events.once(Scenes.Events.DESTROY, stopListening);
 
-        this.showLevel(INLINE_LEVEL);
         EventBus.emit('current-scene-ready', this);
     }
 
     showLevel (level: Level)
     {
+        this.stopActing();
         this.children.removeAll(true);
         this.layout = readLevel(level);
         const { width, gaps, flag, places } = this.layout;
@@ -82,28 +83,38 @@ export class LevelPlayer extends Scene
 
     async actOut (plan: Action[])
     {
-        if (this.acting) return;
+        if (this.acting || !this.layout) return;
         this.acting = true;
-        this.resetLevel();
+        const attempt = ++this.attempt;
+        this.resetLevel(this.layout);
 
         const playthrough = playPlan(this.layout, plan);
         for (const step of playthrough.steps)
         {
             await this.animate(step);
+            if (attempt !== this.attempt) return;
         }
         if (playthrough.outcome === 'cleared')
         {
             await this.tween({ targets: this.companion, y: GROUND_Y - 24, duration: 140, yoyo: true, repeat: 1 });
+            if (attempt !== this.attempt) return;
         }
 
         this.acting = false;
         EventBus.emit('attempt-ended', playthrough);
     }
 
-    private resetLevel ()
+    stopActing ()
+    {
+        this.attempt++;
+        this.acting = false;
+        this.tweens.getTweens().forEach((tween) => tween.stop());
+    }
+
+    private resetLevel (layout: Layout)
     {
         this.tweens.killAll();
-        this.companion.setPosition(this.centre(this.layout.start), GROUND_Y).setAlpha(1).setScale(1);
+        this.companion.setPosition(this.centre(layout.start), GROUND_Y).setAlpha(1).setScale(1);
         this.switches.forEach((sw) => sw.setFillStyle(COLORS.switch).setScale(1));
         this.doors.forEach((door) => door.setAlpha(1));
     }
@@ -136,13 +147,15 @@ export class LevelPlayer extends Scene
                 return this.tween({ targets: c, scaleY: 0.8, duration: 110, yoyo: true });
             }
             case 'wait':
-                return new Promise((resolve) => this.time.delayedCall(300, resolve));
+                return new Promise((resolve) => this.tweens.addCounter({
+                    from: 0, to: 1, duration: 300, onComplete: () => resolve(), onStop: () => resolve()
+                }));
         }
     }
 
     private tween (config: Phaser.Types.Tweens.TweenBuilderConfig): Promise<void>
     {
-        return new Promise((resolve) => this.tweens.add({ ...config, onComplete: () => resolve() }));
+        return new Promise((resolve) => this.tweens.add({ ...config, onComplete: () => resolve(), onStop: () => resolve() }));
     }
 
     private left (tile: number)
