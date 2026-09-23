@@ -42,3 +42,62 @@ body {
     color: inherit;
     resize: vertical;
 }
+
+.prompt textarea:disabled {
+    opacity: 0.5;
+}
+
+.prompt button {
+    font: inherit;
+    font-size: 14px;
+    padding: 6px 12px;
+    border: 1px solid #3a3f4d;
+    border-radius: 8px;
+    background-color: #1b1e27;
+    color: inherit;
+    cursor: pointer;
+}
+
+.prompt button:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.prompt button.send {
+    background-color: #4f46e5;
+    border-color: #4f46e5;
+    color: #fff;
+}
+
+.budget-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+    color: #a3a9b8;
+}
+
+.budget-line .over,
+.status .refused {
+    color: #f97066;
+}
+
+.status {
+    margin: 4px 0 0;
+}
+
+.stub {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #a3a9b8;
+}
+
+.attempts {
+    margin: 4px 0 0;
+    padding-left: 22px;
+    font-size: 14px;
+    color: #a3a9b8;
+}
