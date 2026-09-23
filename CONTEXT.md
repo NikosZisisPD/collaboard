@@ -20,6 +20,14 @@ _Avoid_: Command, instruction, message
 The limit, in tokens, that a Level sets on what the player types. Only the player's own text counts, never the game's hidden instructions or the Companion's replies.
 _Avoid_: Token budget, energy, charge
 
+**Place**:
+A named spot in a Level, such as the edge, the switch or the flag, that the Companion knows by name but not by position.
+_Avoid_: Landmark, waypoint, target
+
+**Plan**:
+The list of actions the Companion makes from a Prompt, acted out in one Attempt.
+_Avoid_: Reply, script, action list
+
 **Attempt**:
 One try at a Level: the player submits a Prompt and the Companion acts it out. An Attempt ends cleared, failed or voided.
 _Avoid_: Run, turn, try
